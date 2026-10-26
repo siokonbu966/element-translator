@@ -182,7 +182,7 @@ export default function App({ variant = "popup" }: AppProps) {
   }
 
   return (
-    <div className={isWindow ? "p-3 w-full min-h-screen" : "p-3 w-[360px]"}>
+    <div className={isWindow ? "p-3 w-full min-h-screen" : "p-3 w-90"}>
       <div className="flex justify-between">
         <h1 className="text-lg font-semibold">Element Translator</h1>
         {!isWindow ? (
@@ -193,7 +193,7 @@ export default function App({ variant = "popup" }: AppProps) {
         ) : null}
       </div>
       <div className="mt-3">
-        <label className="block text-sm font-medium">LM Studio endpoint</label>
+        <label className="block text-sm font-medium">Endpoint</label>
         <input
           className="mt-1 w-full rounded border px-2 py-1 text-sm"
           value={settings.endpoint}
