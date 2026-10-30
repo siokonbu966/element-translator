@@ -42,7 +42,18 @@ pnpm build
 ビルドが成功すると、プロジェクト内に `dist/` フォルダが生成されます。
 
 ### Firefoxへの導入
-todo
+
+NixでインストールしたFirefoxは通常のインストール先と異なるため、`web-ext`が自動検出できない場合があります。以下のコマンドは、`PATH`およびHome Managerの代表的なアプリ配置からFirefoxを探して、開発用プロファイルを起動します。
+
+```sh
+pnpm dev:firefox
+```
+
+別のFirefoxを使用する場合は、実行ファイルのパスを指定できます。
+
+```sh
+FIREFOX_BINARY=/path/to/firefox pnpm dev:firefox
+```
 
 ## 📖 使い方 (Usage)
 
