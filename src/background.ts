@@ -23,7 +23,7 @@ type ParagraphClickedMessage = {
   id?: number;
 }
 
-const DEFAULT_ENDPOINT = "http://127.0.0.1:1234";
+const DEFAULT_ENDPOINT = "";
 const HISTORY_LIMIT = 50;
 const MODELS_TIMEOUT_MS = 10_000;
 const TRANSLATE_TIMEOUT_MS = 60_000;
