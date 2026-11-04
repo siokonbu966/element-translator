@@ -24,7 +24,7 @@ interface AppProps {
   variant?: Variant;
 }
 
-const DEFAULT_ENDPOINT = "http://127.0.0.1:1234";
+const DEFAULT_ENDPOINT = "";
 
 function normalizeBaseUrl(endpoint: string): string {
   // ユーザーが OpenAI 互換の base URL（例: http://localhost:11434/v1）を
@@ -51,29 +51,30 @@ export default function App({ variant = "popup" }: AppProps) {
   const [modelsError, setModelsError] = useState<string | null>(null);
   const [loadingModels, setLoadingModels] = useState<boolean>(false);
 
+  // popupかpanelを判定
   const isWindow = variant === "window";
 
   useEffect(() => {
-    function onStorageChanged(
-      changes: Record<string, browser.Storage.StorageChange>,
-    ) {
-      if (changes.history) {
-        const next = changes.history.newValue;
-        setHistory(Array.isArray(next) ? (next as HistoryItem[]) : []);
-      }
-      if (changes.settings) {
-        const next = changes.settings.newValue as Partial<Settings> | undefined;
-        const endpoint =
-          typeof next?.endpoint === "string" ? next.endpoint : DEFAULT_ENDPOINT;
-        const model = typeof next?.model === "string" ? next.model : "";
-        setSettings({ endpoint, model });
-      }
-    }
+    //function onStorageChanged(
+    //  changes: Record<string, browser.Storage.StorageChange>,
+    //) {
+    //  if (changes.history) {
+    //    const next = changes.history.newValue;
+    //    setHistory(Array.isArray(next) ? (next as HistoryItem[]) : []);
+    //  }
+    //  if (changes.settings) {
+    //    const next = changes.settings.newValue as Partial<Settings> | undefined;
+    //    const endpoint =
+    //      typeof next?.endpoint === "string" ? next.endpoint : DEFAULT_ENDPOINT;
+    //    const model = typeof next?.model === "string" ? next.model : "";
+    //    setSettings({ endpoint, model });
+    //  }
+    //}
 
-    browser.storage.onChanged.addListener(onStorageChanged);
+    //browser.storage.onChanged.addListener(onStorageChanged);
 
     void (async () => {
-      const store = await browser.storage.local.get(["history", "settings"]);
+      const store = await browser.storage.local.get(["history", "settings", "models"]);
       const storedHistory = Array.isArray(store.history)
         ? (store.history as HistoryItem[])
         : [];
@@ -82,13 +83,19 @@ export default function App({ variant = "popup" }: AppProps) {
         typeof raw.endpoint === "string" && raw.endpoint.trim()
           ? raw.endpoint.trim()
           : DEFAULT_ENDPOINT;
-      const model = typeof raw.model === "string" ? raw.model : "";
+      const model = typeof raw.model === "string" ? raw.model : "none";
+      const models = Array.isArray(store.models)
+        ? store.models.filter((model): model is string => typeof model === "string")
+        : [];
       setHistory(storedHistory);
-      setSettings({ endpoint, model });
+      const nextSet = { endpoint, model };
+      console.log(nextSet)
+      setSettings(nextSet);
+      setModels(models);
     })();
 
     return () => {
-      browser.storage.onChanged.removeListener(onStorageChanged);
+      //browser.storage.onChanged.removeListener(onStorageChanged);
     };
   }, []);
 
@@ -117,6 +124,8 @@ export default function App({ variant = "popup" }: AppProps) {
         .map((m) => (typeof m.id === "string" ? m.id : ""))
         .filter(Boolean);
       setModels(nextModels);
+      console.log(nextModels)
+      browser.storage.local.set({ models: nextModels })
       // 以前のモデル（LM Studio のものなど）が一覧にない場合、
       // <select> の value がどの option とも一致せず空表示になるので選び直す
       const picked = nextModels.includes(settings.model)
@@ -125,6 +134,7 @@ export default function App({ variant = "popup" }: AppProps) {
       if (picked !== settings.model) {
         await browser.storage.local.set({
           settings: { ...settings, endpoint, model: picked },
+          models: nextModels,
         });
       }
     } catch (e: unknown) {
@@ -138,12 +148,14 @@ export default function App({ variant = "popup" }: AppProps) {
   function setEndpoint(endpoint: string) {
     const next = { ...settings, endpoint };
     setSettings(next);
+    console.log("set endpoint:" + next.endpoint)
     void browser.storage.local.set({ settings: next });
   }
 
   function setModel(model: string) {
     const next = { ...settings, model };
     setSettings(next);
+    console.log("set model:" + next.model)
     void browser.storage.local.set({ settings: next });
   }
 
@@ -182,7 +194,7 @@ export default function App({ variant = "popup" }: AppProps) {
   }
 
   return (
-    <div className={isWindow ? "p-3 w-full min-h-screen" : "p-3 w-[360px]"}>
+    <div className={isWindow ? "p-3 w-full min-h-screen" : "p-3 w-90"}>
       <div className="flex justify-between">
         <h1 className="text-lg font-semibold">Element Translator</h1>
         {!isWindow ? (
@@ -193,12 +205,12 @@ export default function App({ variant = "popup" }: AppProps) {
         ) : null}
       </div>
       <div className="mt-3">
-        <label className="block text-sm font-medium">LM Studio endpoint</label>
+        <label className="block text-sm font-medium">Endpoint</label>
         <input
           className="mt-1 w-full rounded border px-2 py-1 text-sm"
           value={settings.endpoint}
           onChange={(e) => void setEndpoint(e.target.value)}
-          placeholder={DEFAULT_ENDPOINT}
+          placeholder="http://127.0.0.1:1234"
         />
         {endpointError ? (
           <div className="mt-1 text-xs text-red-600">{endpointError}</div>
@@ -219,6 +231,7 @@ export default function App({ variant = "popup" }: AppProps) {
                 ? "Select model"
                 : "No models"}
           </option>
+          {/*表示させているものが違う(string array)*/}
           {models.map((m) => (
             <option key={m} value={m}>
               {m}
