@@ -74,7 +74,7 @@ export default function App({ variant = "popup" }: AppProps) {
     //browser.storage.onChanged.addListener(onStorageChanged);
 
     void (async () => {
-      const store = await browser.storage.local.get(["history", "settings"]);
+      const store = await browser.storage.local.get(["history", "settings", "models"]);
       const storedHistory = Array.isArray(store.history)
         ? (store.history as HistoryItem[])
         : [];
@@ -84,10 +84,14 @@ export default function App({ variant = "popup" }: AppProps) {
           ? raw.endpoint.trim()
           : DEFAULT_ENDPOINT;
       const model = typeof raw.model === "string" ? raw.model : "none";
+      const models = Array.isArray(store.models)
+        ? store.models.filter((model): model is string => typeof model === "string")
+        : [];
       setHistory(storedHistory);
       const nextSet = { endpoint, model };
       console.log(nextSet)
       setSettings(nextSet);
+      setModels(models);
     })();
 
     return () => {
@@ -120,6 +124,8 @@ export default function App({ variant = "popup" }: AppProps) {
         .map((m) => (typeof m.id === "string" ? m.id : ""))
         .filter(Boolean);
       setModels(nextModels);
+      console.log(nextModels)
+      browser.storage.local.set({ models: nextModels })
       // 以前のモデル（LM Studio のものなど）が一覧にない場合、
       // <select> の value がどの option とも一致せず空表示になるので選び直す
       const picked = nextModels.includes(settings.model)
@@ -128,6 +134,7 @@ export default function App({ variant = "popup" }: AppProps) {
       if (picked !== settings.model) {
         await browser.storage.local.set({
           settings: { ...settings, endpoint, model: picked },
+          models: nextModels,
         });
       }
     } catch (e: unknown) {
