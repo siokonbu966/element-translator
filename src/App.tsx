@@ -55,24 +55,6 @@ export default function App({ variant = "popup" }: AppProps) {
   const isWindow = variant === "window";
 
   useEffect(() => {
-    //function onStorageChanged(
-    //  changes: Record<string, browser.Storage.StorageChange>,
-    //) {
-    //  if (changes.history) {
-    //    const next = changes.history.newValue;
-    //    setHistory(Array.isArray(next) ? (next as HistoryItem[]) : []);
-    //  }
-    //  if (changes.settings) {
-    //    const next = changes.settings.newValue as Partial<Settings> | undefined;
-    //    const endpoint =
-    //      typeof next?.endpoint === "string" ? next.endpoint : DEFAULT_ENDPOINT;
-    //    const model = typeof next?.model === "string" ? next.model : "";
-    //    setSettings({ endpoint, model });
-    //  }
-    //}
-
-    //browser.storage.onChanged.addListener(onStorageChanged);
-
     void (async () => {
       const store = await browser.storage.local.get(["history", "settings", "models"]);
       const storedHistory = Array.isArray(store.history)
@@ -89,14 +71,9 @@ export default function App({ variant = "popup" }: AppProps) {
         : [];
       setHistory(storedHistory);
       const nextSet = { endpoint, model };
-      console.log(nextSet)
       setSettings(nextSet);
       setModels(models);
     })();
-
-    return () => {
-      //browser.storage.onChanged.removeListener(onStorageChanged);
-    };
   }, []);
 
   async function clearHistory() {
@@ -124,10 +101,7 @@ export default function App({ variant = "popup" }: AppProps) {
         .map((m) => (typeof m.id === "string" ? m.id : ""))
         .filter(Boolean);
       setModels(nextModels);
-      console.log(nextModels)
       browser.storage.local.set({ models: nextModels })
-      // 以前のモデル（LM Studio のものなど）が一覧にない場合、
-      // <select> の value がどの option とも一致せず空表示になるので選び直す
       const picked = nextModels.includes(settings.model)
         ? settings.model
         : (nextModels[0] ?? "");
@@ -148,14 +122,12 @@ export default function App({ variant = "popup" }: AppProps) {
   function setEndpoint(endpoint: string) {
     const next = { ...settings, endpoint };
     setSettings(next);
-    console.log("set endpoint:" + next.endpoint)
     void browser.storage.local.set({ settings: next });
   }
 
   function setModel(model: string) {
     const next = { ...settings, model };
     setSettings(next);
-    console.log("set model:" + next.model)
     void browser.storage.local.set({ settings: next });
   }
 
