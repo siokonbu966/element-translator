@@ -15,6 +15,16 @@ Webページ上のテキスト要素（パラグラフなど）を選択・ク�
 - **LM Studio**: インストール済みで、日本語対応のLLMモデルがロードされていること。
 - **Local Serverの起動**: LM Studio内でローカルAPIサーバー（デフォルト: `http://127.0.0.1:1234`）が稼働していること。
 
+### Ollamaを使用する場合
+
+Ollamaを使う場合は、ブラウザ拡張機能からのアクセスを許可するため、Ollamaの起動前に環境変数 `OLLAMA_ORIGINS` を設定してください。ChromeとFirefoxの拡張機能を許可する例:
+
+```sh
+OLLAMA_ORIGINS='chrome-extension://*,moz-extension://*' ollama serve
+```
+
+Ollamaをアプリやサービスとして起動している場合は、環境変数を設定してからOllamaを再起動してください。環境変数の設定方法は[Ollamaのドキュメント](https://github.com/ollama/ollama/blob/main/docs/faq.mdx#how-do-i-configure-ollama-server)を参照してください。この設定例では、Chrome・Firefoxのすべての拡張機能からのアクセスを許可します。
+
 ## 🛠️ ビルドとインストール (Build & Install)
 
 **開発・ビルド要件**
