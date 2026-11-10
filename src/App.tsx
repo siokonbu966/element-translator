@@ -74,7 +74,7 @@ export default function App({ variant = "popup" }: AppProps) {
       setSettings(nextSet);
       setModels(models);
     })();
-  }, []);
+  }, [history]);
 
   async function clearHistory() {
     await browser.storage.local.set({ history: [] });
