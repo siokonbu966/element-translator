@@ -56,7 +56,11 @@ export default function App({ variant = "popup" }: AppProps) {
 
   useEffect(() => {
     void (async () => {
-      const store = await browser.storage.local.get(["history", "settings", "models"]);
+      const store = await browser.storage.local.get([
+        "history",
+        "settings",
+        "models",
+      ]);
       const storedHistory = Array.isArray(store.history)
         ? (store.history as HistoryItem[])
         : [];
@@ -67,7 +71,9 @@ export default function App({ variant = "popup" }: AppProps) {
           : DEFAULT_ENDPOINT;
       const model = typeof raw.model === "string" ? raw.model : "none";
       const models = Array.isArray(store.models)
-        ? store.models.filter((model): model is string => typeof model === "string")
+        ? store.models.filter(
+            (model): model is string => typeof model === "string",
+          )
         : [];
       setHistory(storedHistory);
       const nextSet = { endpoint, model };
@@ -101,7 +107,7 @@ export default function App({ variant = "popup" }: AppProps) {
         .map((m) => (typeof m.id === "string" ? m.id : ""))
         .filter(Boolean);
       setModels(nextModels);
-      browser.storage.local.set({ models: nextModels })
+      browser.storage.local.set({ models: nextModels });
       const picked = nextModels.includes(settings.model)
         ? settings.model
         : (nextModels[0] ?? "");
@@ -152,12 +158,21 @@ export default function App({ variant = "popup" }: AppProps) {
   }
 
   async function openWindow() {
+    const width = Math.max(
+      320,
+      Math.min(880, Math.floor(window.screen.availWidth * 0.9)),
+    );
+    const height = Math.max(
+      480,
+      Math.min(760, Math.floor(window.screen.availHeight * 0.9)),
+    );
+
     try {
       await browser.windows.create({
         url: browser.runtime.getURL("panel.html"),
         type: "popup",
-        width: 480,
-        height: 720,
+        width,
+        height,
         focused: true,
       });
     } catch (e: unknown) {
@@ -166,112 +181,195 @@ export default function App({ variant = "popup" }: AppProps) {
   }
 
   return (
-    <div className={isWindow ? "p-3 w-full min-h-screen" : "p-3 w-90"}>
-      <div className="flex justify-between">
-        <h1 className="text-lg font-semibold">Element Translator</h1>
-        {!isWindow ? (
-          <WindowIcon
-            className="h-8 icon-white"
-            onClick={() => void openWindow()}
-          />
-        ) : null}
-      </div>
-      <div className="mt-3">
-        <label className="block text-sm font-medium">Endpoint</label>
-        <input
-          className="mt-1 w-full rounded border px-2 py-1 text-sm"
-          value={settings.endpoint}
-          onChange={(e) => void setEndpoint(e.target.value)}
-          placeholder="http://127.0.0.1:1234"
-        />
-        {endpointError ? (
-          <div className="mt-1 text-xs text-red-600">{endpointError}</div>
-        ) : null}
-      </div>
-      <div className="mt-3">
-        <label className="block text-sm font-medium">Model</label>
-        <select
-          className="mt-1 w-full rounded border px-2 py-1 text-sm"
-          value={settings.model}
-          onChange={(e) => void setModel(e.target.value)}
-          disabled={loadingModels || models.length === 0}
-        >
-          <option value="" disabled>
-            {loadingModels
-              ? "Loading..."
-              : models.length
-                ? "Select model"
-                : "No models"}
-          </option>
-          {/*表示させているものが違う(string array)*/}
-          {models.map((m) => (
-            <option key={m} value={m}>
-              {m}
-            </option>
-          ))}
-        </select>
-        {modelsError ? (
-          <div className="mt-1 text-xs text-red-600">{modelsError}</div>
-        ) : null}
-      </div>
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <button
-          className="rounded border px-2 py-1 text-sm"
-          onClick={() => void loadModels()}
-        >
-          Refresh models
-        </button>
-        <button
-          className="rounded border px-2 py-1 text-sm"
-          onClick={() => void clearHistory()}
-        >
-          Clear history
-        </button>
-        <button
-          className="rounded border px-2 py-1 text-sm"
-          onClick={() => void startSelectText()}
-        >
-          Select text
-        </button>
-        <button
-          className="rounded border px-2 py-1 text-sm"
-          onClick={() => void allTextTranslate()}
-        >
-          All text translate
-        </button>
-      </div>
-      <div className="mt-4">
-        <div className="text-sm font-medium">History</div>
-        <div className="mt-2 space-y-3">
-          {history.map((item) => (
-            <div key={item.at} className="rounded border p-2">
-              <div className="text-xs text-slate-500 break-all">
-                {item.url}
-              </div>
-              <div className="mt-1 text-xs text-slate-500 break-all">
-                {new Date(item.at).toLocaleString()} ({item.model})
-              </div>
-              <div className="mt-2 text-sm font-medium">原文</div>
-              <div className="text-sm whitespace-pre-wrap break-words">
-                {item.sourceText}
-              </div>
-              <div className="mt-2 text-sm font-medium">訳</div>
-              {item.error ? (
-                <div className="text-sm text-red-600 whitespace-pre-wrap break-words">
-                  {item.error}
-                </div>
-              ) : (
-                <div className="text-sm whitespace-pre-wrap break-words">
-                  {item.translatedText}
-                </div>
-              )}
-            </div>
-          ))}
-          {history.length === 0 ? (
-            <div className="text-sm text-slate-500">No history yet.</div>
-          ) : null}
+    <main className={`app-shell${isWindow ? " app-shell--window" : ""}`}>
+      <header className="app-header">
+        <div className="brand-lockup">
+          <div className="brand-mark" aria-hidden="true">
+            文
+          </div>
+          <div>
+            <h1 className="app-title">Element Translator</h1>
+            <p className="app-subtitle">Translate the page you’re reading.</p>
+          </div>
         </div>
+        {!isWindow ? (
+          <button
+            className="icon-button"
+            type="button"
+            onClick={() => void openWindow()}
+            aria-label="Open in a separate window"
+            title="Open in a separate window"
+          >
+            <WindowIcon aria-hidden="true" />
+          </button>
+        ) : null}
+      </header>
+
+      <div className="app-body">
+        <div className="control-stack">
+          <section className="settings-card" aria-labelledby="connection-title">
+            <div className="section-heading">
+              <div>
+                <h2 id="connection-title">Connection</h2>
+                <p>Choose the translation service and model.</p>
+              </div>
+              <span className="section-mark" aria-hidden="true">
+                ✳
+              </span>
+            </div>
+
+            <div className="field-group">
+              <label className="field-label" htmlFor="endpoint">
+                Endpoint
+              </label>
+              <input
+                id="endpoint"
+                className="text-field"
+                value={settings.endpoint}
+                onChange={(e) => void setEndpoint(e.target.value)}
+                placeholder="http://127.0.0.1:1234"
+              />
+              {endpointError ? (
+                <div className="field-error" role="alert">
+                  {endpointError}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="field-group">
+              <label className="field-label" htmlFor="model">
+                Model
+              </label>
+              <select
+                id="model"
+                className="text-field model-select"
+                value={settings.model}
+                onChange={(e) => void setModel(e.target.value)}
+                disabled={loadingModels || models.length === 0}
+              >
+                <option value="" disabled>
+                  {loadingModels
+                    ? "Loading..."
+                    : models.length
+                      ? "Select model"
+                      : "No models"}
+                </option>
+                {/*表示させているものが違う(string array)*/}
+                {models.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+              {modelsError ? (
+                <div className="field-error" role="alert">
+                  {modelsError}
+                </div>
+              ) : null}
+            </div>
+
+            <button
+              className="text-button refresh-button"
+              type="button"
+              onClick={() => void loadModels()}
+              disabled={loadingModels}
+            >
+              <span
+                className={
+                  loadingModels ? "refresh-glyph is-spinning" : "refresh-glyph"
+                }
+                aria-hidden="true"
+              >
+                ↻
+              </span>
+              {loadingModels ? "Loading models…" : "Refresh models"}
+            </button>
+          </section>
+
+          <section className="actions-section" aria-label="Translation actions">
+            <div className="actions-grid">
+              <button
+                className="action-button action-button--primary"
+                type="button"
+                onClick={() => void startSelectText()}
+              >
+                <span className="action-symbol" aria-hidden="true">
+                  Aa
+                </span>
+                <span>Select text</span>
+              </button>
+              <button
+                className="action-button action-button--tonal"
+                type="button"
+                onClick={() => void allTextTranslate()}
+              >
+                <span
+                  className="action-symbol action-symbol--page"
+                  aria-hidden="true"
+                >
+                  ▤
+                </span>
+                <span>Translate page</span>
+              </button>
+            </div>
+          </section>
+        </div>
+
+        <section className="history-section" aria-labelledby="history-title">
+          <div className="history-heading">
+            <div>
+              <h2 id="history-title">Recent translations</h2>
+              <p>Your latest activity on this device.</p>
+            </div>
+            {history.length > 0 ? (
+              <button
+                className="text-button clear-button"
+                type="button"
+                onClick={() => void clearHistory()}
+              >
+                Clear
+              </button>
+            ) : null}
+          </div>
+
+          <div className="history-list">
+            {history.map((item) => (
+              <article key={item.at} className="history-item">
+                <div className="history-meta">
+                  <time dateTime={new Date(item.at).toISOString()}>
+                    {new Date(item.at).toLocaleString()}
+                  </time>
+                  <span className="history-model">{item.model}</span>
+                </div>
+                <div className="history-url" title={item.url}>
+                  {item.url}
+                </div>
+                <div className="history-copy">
+                  <div className="history-text">
+                    <h3>Original</h3>
+                    <p>{item.sourceText}</p>
+                  </div>
+                  <div
+                    className={`history-text history-translation${item.error ? " history-translation--error" : ""}`}
+                  >
+                    <h3>{item.error ? "Translation error" : "Translation"}</h3>
+                    <p>{item.error ?? item.translatedText}</p>
+                  </div>
+                </div>
+              </article>
+            ))}
+            {history.length === 0 ? (
+              <div className="empty-state">
+                <span className="empty-mark" aria-hidden="true">
+                  文
+                </span>
+                <p>No translations yet</p>
+                <span>Select text or translate a page to get started.</span>
+              </div>
+            ) : null}
+          </div>
+        </section>
       </div>
-    </div>
+    </main>
   );
 }
