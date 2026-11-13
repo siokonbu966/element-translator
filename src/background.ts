@@ -51,7 +51,7 @@ async function ensureModel(settings: Settings): Promise<Settings> {
   try {
     const models = await listModels(settings.endpoint, controller.signal);
     const picked = models[0] ?? "";
-    if (!picked) throw new Error("No models returned from LM Studio");
+    if (!picked) throw new Error("No models returned by the configured provider");
 
     const next = { ...settings, model: picked };
     await saveSettings(next);
@@ -98,7 +98,7 @@ async function translateToJapanese(
       const body = await res.text().catch(() => "");
       console.log(body)
       throw new Error(
-        `LM Studio chat.completions failed: ${res.status} ${body}`.trim(),
+        `Chat completions request failed: ${res.status} ${body}`.trim(),
       );
     }
     const json: unknown = await res.json();
