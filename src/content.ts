@@ -9,6 +9,15 @@ const SELECTING_CLASS = "element-translator-selecting";
 const HOVER_CLASS = "element-translator-select-hover";
 const FLASH_CLASS = "element-translator-select-flash";
 const CONTENT_BLOCK_SELECTOR = "p, li, div, h1, h2, h3, h4, h5, h6"
+const ALLOWED_DIV_CHILD_TAGS = new Set([
+  "STRONG",
+  "EM",
+  "SPAN",
+  "B",
+  "I",
+  "CODE",
+  "BR",
+])
 
 function injectSelectStyle() {
   if (document.getElementById(SELECT_STYLE_ID)) return;
@@ -59,19 +68,33 @@ function setupSelectTextListener() {
     hovered?.classList.add(HOVER_CLASS);
   }
 
+  // div text element filters
   function isLeafTextDiv(el: HTMLDivElement): boolean {
     if (!el.textContent?.trim()) return false;
 
-    const descedants = el.querySelectorAll(CONTENT_BLOCK_SELECTOR);
-    return !Array.from(descedants).some((child) => child.textContent?.trim());
+    const descendants = el.querySelectorAll(CONTENT_BLOCK_SELECTOR);
+    return !Array.from(descendants).some((child) => child.textContent?.trim());
+  }
+
+  function hasOnlyAllowedElementChildren(el: Element): boolean {
+    const children = Array.from(el.children);
+
+    return (
+      children.length > 0 &&
+      children.every((child) => ALLOWED_DIV_CHILD_TAGS.has(child.tagName))
+    );
   }
 
   function findSelectableElement(target: HTMLElement | null): Element | null {
     const textBlock = target?.closest("p, li");
     if (textBlock) return textBlock;
-  
+   
     const divBlock = target?.closest("div");
-    const divLeaf = divBlock instanceof HTMLDivElement && isLeafTextDiv(divBlock) ? divBlock : null;
+    const divLeaf = divBlock instanceof HTMLDivElement &&
+      isLeafTextDiv(divBlock) &&
+      hasOnlyAllowedElementChildren(divBlock)
+      ? divBlock
+      : null;
     return divLeaf; 
   }
 
@@ -95,7 +118,7 @@ function setupSelectTextListener() {
   }
 
   function handler(event: MouseEvent) {
-    const target = event.target as HTMLElement | null;
+    const target = findSelectableElement(event.target as HTMLElement | null);
     const el = target?.closest(CONTENT_BLOCK_SELECTOR);
     if (!el) return;
 
