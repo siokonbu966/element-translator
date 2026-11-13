@@ -129,6 +129,26 @@ async function appendHistory(item: HistoryItem) {
   await browser.storage.local.set({ history: next });
 }
 
+browser.commands.onCommand.addListener(async (command) => {
+  console.log(command)
+  if (command != "select-text") return;
+
+  const [tab] = await browser.tabs.query({
+    active: true,
+    lastFocusedWindow: true,
+  });
+
+  if (tab?.id === undefined) return;
+
+  try {
+    await browser.tabs.sendMessage(tab.id, {
+      type: "SELECT_TRANSLATE",
+    });
+  } catch (error) {
+    console.error("[element-translator] Could not start selection: ", error);
+  }
+});
+
 browser.runtime.onMessage.addListener(
   (message: unknown, sender: browser.Runtime.MessageSender) => {
     const msg = message as Partial<ParagraphClickedMessage>;

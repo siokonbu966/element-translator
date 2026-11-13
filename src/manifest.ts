@@ -5,7 +5,7 @@ const base = {
   name: "Element Translator",
   version: "2.0.1",
   description:
-    "Translate clicked <p>/<li> text and show in popup with history.",
+    "Translate clicked HTML text element and show in popup with history.",
   action: {
     default_title: "Translate Element",
     default_popup: "popup.html",
@@ -41,12 +41,28 @@ const firefox = {
     scripts: ["background.js"],
     type: "module",
   },
+  commands: {
+    "select-text": {
+      suggested_key: {
+        default: "Alt+Shift+Y",
+      },
+      description: "Start text selection mode",
+    },
+  },
 };
 
 const chrome = {
   ...base,
   background: {
     service_worker: "background.js",
+  },
+  commands: {
+    "select-text": {
+      suggested_key: {
+        default: "Alt+Shift+Y",
+      },
+      description: "Start text selection mode",
+    },
   },
 };
 
