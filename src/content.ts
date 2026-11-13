@@ -8,6 +8,7 @@ const SELECT_STYLE_ID = "element-translator-select-style";
 const SELECTING_CLASS = "element-translator-selecting";
 const HOVER_CLASS = "element-translator-select-hover";
 const FLASH_CLASS = "element-translator-select-flash";
+const CONTENT_BLOCK_SELECTOR = "p, li, div, h1, h2, h3, h4, h5, h6"
 
 function injectSelectStyle() {
   if (document.getElementById(SELECT_STYLE_ID)) return;
@@ -58,14 +59,30 @@ function setupSelectTextListener() {
     hovered?.classList.add(HOVER_CLASS);
   }
 
+  function isLeafTextDiv(el: HTMLDivElement): boolean {
+    if (!el.textContent?.trim()) return false;
+
+    const descedants = el.querySelectorAll(CONTENT_BLOCK_SELECTOR);
+    return !Array.from(descedants).some((child) => child.textContent?.trim());
+  }
+
+  function findSelectableElement(target: HTMLElement | null): Element | null {
+    const textBlock = target?.closest("p, li");
+    if (textBlock) return textBlock;
+  
+    const divBlock = target?.closest("div");
+    const divLeaf = divBlock instanceof HTMLDivElement && isLeafTextDiv(divBlock) ? divBlock : null;
+    return divLeaf; 
+  }
+
   function overHandler(event: MouseEvent) {
-    const target = event.target as HTMLElement | null;
-    updateHover(target?.closest("p, li") ?? null);
+    const target = findSelectableElement(event.target as HTMLElement | null);
+    updateHover(target?.closest(CONTENT_BLOCK_SELECTOR) ?? null);
   }
 
   function outHandler(event: MouseEvent) {
-    const related = event.relatedTarget as HTMLElement | null;
-    updateHover(related?.closest("p, li") ?? null);
+    const related = findSelectableElement(event.relatedTarget as HTMLElement | null);
+    updateHover(related?.closest(CONTENT_BLOCK_SELECTOR) ?? null);
   }
 
   function cleanup() {
@@ -79,7 +96,7 @@ function setupSelectTextListener() {
 
   function handler(event: MouseEvent) {
     const target = event.target as HTMLElement | null;
-    const el = target?.closest("p, li");
+    const el = target?.closest(CONTENT_BLOCK_SELECTOR);
     if (!el) return;
 
     const text = el.textContent?.trim() ?? "";
@@ -113,7 +130,7 @@ const EXCLUDE_SELECTOR = "a, nav, footer, aside, header, [role='navigation'], [r
 
 function collectMainContentTexts() {
   const container = getMainContainer();
-  const elements = container.querySelectorAll("h1, h2, h3, h4, h5, h6, p, li");
+  const elements = container.querySelectorAll(CONTENT_BLOCK_SELECTOR);
   let sentCount = 0;
   let skipCount = 0;
   let id = 0;
