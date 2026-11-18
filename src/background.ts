@@ -1,4 +1,6 @@
 import browser from "webextension-polyfill";
+import { listModels } from "./modules/listModels";
+import { normalizeBaseUrl } from "./modules/normalizeBaseUrl";
 
 interface Settings {
   endpoint: string;
@@ -23,7 +25,7 @@ type ParagraphClickedMessage = {
   id?: number;
 }
 
-const DEFAULT_ENDPOINT = "http://127.0.0.1:1234";
+const DEFAULT_ENDPOINT = "";
 const HISTORY_LIMIT = 50;
 const MODELS_TIMEOUT_MS = 10_000;
 const TRANSLATE_TIMEOUT_MS = 60_000;
@@ -41,29 +43,6 @@ async function getSettings(): Promise<Settings> {
   };
 }
 
-async function saveSettings(settings: Settings) {
-  await browser.storage.local.set({ settings });
-}
-
-function normalizeBaseUrl(endpoint: string): string {
-  return endpoint.trim().replace(/\/+$/, "").replace(/\/v1$/, "");
-}
-
-async function listModels(
-  endpoint: string,
-  signal?: AbortSignal,
-): Promise<string[]> {
-  const res = await fetch(`${normalizeBaseUrl(endpoint)}/v1/models`, {
-    signal,
-  });
-  if (!res.ok) throw new Error(`LM Studio /v1/models failed: ${res.status}`);
-
-  const json = (await res.json()) as { data?: Array<{ id?: string }> };
-  return (json.data ?? [])
-    .map((m) => (typeof m.id === "string" ? m.id : ""))
-    .filter(Boolean);
-}
-
 async function ensureModel(settings: Settings): Promise<Settings> {
   if (settings.model) return settings;
 
@@ -72,7 +51,7 @@ async function ensureModel(settings: Settings): Promise<Settings> {
   try {
     const models = await listModels(settings.endpoint, controller.signal);
     const picked = models[0] ?? "";
-    if (!picked) throw new Error("No models returned from LM Studio");
+    if (!picked) throw new Error("No models returned by the configured provider");
 
     const next = { ...settings, model: picked };
     await saveSettings(next);
@@ -80,6 +59,10 @@ async function ensureModel(settings: Settings): Promise<Settings> {
   } finally {
     clearTimeout(timeout);
   }
+}
+
+async function saveSettings(settings: Settings) {
+  await browser.storage.local.set({ settings });
 }
 
 async function translateToJapanese(
@@ -113,8 +96,9 @@ async function translateToJapanese(
     );
     if (!res.ok) {
       const body = await res.text().catch(() => "");
+      console.log(body)
       throw new Error(
-        `LM Studio chat.completions failed: ${res.status} ${body}`.trim(),
+        `Chat completions request failed: ${res.status} ${body}`.trim(),
       );
     }
     const json: unknown = await res.json();
@@ -144,6 +128,26 @@ async function appendHistory(item: HistoryItem) {
   const next = [item, ...prev].slice(0, HISTORY_LIMIT);
   await browser.storage.local.set({ history: next });
 }
+
+browser.commands.onCommand.addListener(async (command) => {
+  console.log(command)
+  if (command != "select-text") return;
+
+  const [tab] = await browser.tabs.query({
+    active: true,
+    lastFocusedWindow: true,
+  });
+
+  if (tab?.id === undefined) return;
+
+  try {
+    await browser.tabs.sendMessage(tab.id, {
+      type: "SELECT_TRANSLATE",
+    });
+  } catch (error) {
+    console.error("[element-translator] Could not start selection: ", error);
+  }
+});
 
 browser.runtime.onMessage.addListener(
   (message: unknown, sender: browser.Runtime.MessageSender) => {
@@ -181,6 +185,7 @@ browser.runtime.onMessage.addListener(
         );
       } catch (e: unknown) {
         error = e instanceof Error ? e.message : String(e);
+        console.log(error);
       }
 
       if (msg.type === "PARAGRAPH_CLICKED") {
