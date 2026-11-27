@@ -21,8 +21,12 @@
           packages = with pkgs; [
             nodejs_24
             pnpm_10
+
+            (writeShellScriptBin "dev" ''
+              exec bash ${./scripts/dev.sh} "$@"
+            '')
           ];
-          
+
           shellHook = ''
             export NPM_CONFIG_MANAGE_PACKAGE_MANAGER_VERSIONS=false
 
