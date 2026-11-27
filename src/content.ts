@@ -50,37 +50,35 @@ html.${SELECTING_CLASS}, html.${SELECTING_CLASS} * {
   document.head.appendChild(style);
 }
 
-// div text element filters
-// Verifying whether it retains text
-function isLeafTextDiv(el: HTMLDivElement): boolean {
-  if (!el.textContent?.trim()) return false;
+  // div text element filters
+  function isLeafTextDiv(el: HTMLDivElement): boolean {
+    if (!el.textContent?.trim()) return false;
 
-  const descendants = el.querySelectorAll(CONTENT_BLOCK_SELECTOR);
-  return !Array.from(descendants).some((child) => child.textContent?.trim());
-}
+    const descendants = el.querySelectorAll(CONTENT_BLOCK_SELECTOR);
+    return !Array.from(descendants).some((child) => child.textContent?.trim());
+  }
 
-// Check child elements has allow tags
-function hasOnlyAllowedElementChildren(el: Element): boolean {
-  const children = Array.from(el.children);
+  function hasOnlyAllowedElementChildren(el: Element): boolean {
+    const children = Array.from(el.children);
 
-  return (
-    children.length > 0 &&
-    children.every((child) => ALLOWED_DIV_CHILD_TAGS.has(child.tagName))
-  );
-}
+    return (
+      children.length > 0 &&
+      children.every((child) => ALLOWED_DIV_CHILD_TAGS.has(child.tagName))
+    );
+  }
 
-function findSelectableElement(target: HTMLElement | null): Element | null {
-  const textBlock = target?.closest("p, li");
-  if (textBlock) return textBlock;
- 
-  const divBlock = target?.closest("div");
-  const divLeaf = divBlock instanceof HTMLDivElement &&
-    isLeafTextDiv(divBlock) &&
-    hasOnlyAllowedElementChildren(divBlock)
-    ? divBlock
-    : null;
-  return divLeaf; 
-}
+  function findSelectableElement(target: HTMLElement | null): Element | null {
+    const textBlock = target?.closest("p, li");
+    if (textBlock) return textBlock;
+   
+    const divBlock = target?.closest("div");
+    const divLeaf = divBlock instanceof HTMLDivElement &&
+      isLeafTextDiv(divBlock) &&
+      hasOnlyAllowedElementChildren(divBlock)
+      ? divBlock
+      : null;
+    return divLeaf; 
+  }
 
 let selecting = false;
 
@@ -162,7 +160,7 @@ function collectMainContentTexts() {
   const textList: Map<number, { element: Element }> = new Map(); 
 
   for (const el of elements) {
-    if (el.closest(EXCLUDE_SELECTOR) && findSelectableElement(el)) continue;
+    if (el.closest(EXCLUDE_SELECTOR) && hasOnlyAllowedElementChildren(el)) continue;
 
     const text = (el.textContent ?? "").trim();
     if (!text) {
